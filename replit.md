@@ -16,6 +16,19 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 
+## Artifacts
+
+### `artifacts/budget-tracker` — Budget Tracker Web App (React + Vite, at `/`)
+- Login page (sign in / sign up / demo account)
+- Dashboard with charts (Recharts), summary cards, recent transactions, quick actions
+- Add Transaction form (income/expense toggle, category, date, payment method)
+- Transaction History with search, filters, table
+- Budget Overview with progress bars per category
+- Reports with trend charts and analytics
+- Settings with working dark mode toggle, currency, CSV export, logout
+- Dark mode: toggleable via sidebar or Settings, applies `dark` class to `<html>`
+- Responsive: mobile drawer sidebar + desktop fixed sidebar
+
 ## Structure
 
 ```text

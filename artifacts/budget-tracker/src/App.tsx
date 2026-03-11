@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,8 +7,8 @@ import NotFound from "@/pages/not-found";
 
 import { DataProvider } from "@/lib/data-context";
 import { Layout } from "@/components/layout";
+import Login from "@/pages/login";
 
-// Pages
 import Dashboard from "@/pages/dashboard";
 import AddTransaction from "@/pages/add-transaction";
 import TransactionsHistory from "@/pages/transactions";
@@ -17,9 +18,9 @@ import Settings from "@/pages/settings";
 
 const queryClient = new QueryClient();
 
-function Router() {
+function Router({ onLogout }: { onLogout: () => void }) {
   return (
-    <Layout>
+    <Layout onLogout={onLogout}>
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/add" component={AddTransaction} />
@@ -34,12 +35,27 @@ function Router() {
 }
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+  };
+
+  if (!isLoggedIn) {
+    return (
+      <>
+        <Login onLogin={() => setIsLoggedIn(true)} />
+        <Toaster />
+      </>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <DataProvider>
         <TooltipProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
+            <Router onLogout={handleLogout} />
           </WouterRouter>
           <Toaster />
         </TooltipProvider>

@@ -26,32 +26,37 @@ interface DataContextType {
   addTransaction: (tx: Omit<Transaction, "id">) => void;
   deleteTransaction: (id: string) => void;
   updateBudget: (id: string, limit: number) => void;
-  settings: { currency: string; name: string };
-  updateSettings: (settings: Partial<{ currency: string; name: string }>) => void;
+  settings: { currency: string; name: string; darkMode: boolean };
+  updateSettings: (settings: Partial<{ currency: string; name: string; darkMode: boolean }>) => void;
 }
 
 const generateMockData = () => {
   const categories = ["Food", "Transport", "Shopping", "Bills", "Entertainment"];
   const txs: Transaction[] = [];
   const today = new Date();
-  
-  // Generate some realistic past data
+
   for (let i = 0; i < 25; i++) {
     const isExpense = Math.random() > 0.2;
     const date = new Date(today);
-    date.setDate(date.getDate() - Math.floor(Math.random() * 60)); // Last 60 days
-    
+    date.setDate(date.getDate() - Math.floor(Math.random() * 60));
+
     txs.push({
       id: `tx-${Math.random().toString(36).substr(2, 9)}`,
       type: isExpense ? "expense" : "income",
-      amount: isExpense ? Math.floor(Math.random() * 150) + 10 : Math.floor(Math.random() * 2000) + 500,
-      category: isExpense ? categories[Math.floor(Math.random() * categories.length)] : "Salary",
-      description: isExpense ? `Purchase at ${['Walmart', 'Uber', 'Amazon', 'Netflix', 'Starbucks'][Math.floor(Math.random() * 5)]}` : 'Direct Deposit',
-      date: date.toISOString().split('T')[0],
+      amount: isExpense
+        ? Math.floor(Math.random() * 150) + 10
+        : Math.floor(Math.random() * 2000) + 500,
+      category: isExpense
+        ? categories[Math.floor(Math.random() * categories.length)]
+        : "Salary",
+      description: isExpense
+        ? `Purchase at ${["Walmart", "Uber", "Amazon", "Netflix", "Starbucks"][Math.floor(Math.random() * 5)]}`
+        : "Direct Deposit",
+      date: date.toISOString().split("T")[0],
       paymentMethod: ["Card", "Cash", "Bank Transfer"][Math.floor(Math.random() * 3)],
     });
   }
-  
+
   return txs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
 
@@ -70,42 +75,72 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export function DataProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [budgets, setBudgets] = useState<Budget[]>(initialBudgets);
-  const [settings, setSettings] = useState({ currency: "USD", name: "Alex Carter" });
+  const [settings, setSettings] = useState({
+    currency: "USD",
+    name: "Alex Carter",
+    darkMode: false,
+  });
 
-  // Recalculate budget spent amounts whenever transactions change
   useEffect(() => {
-    const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
-    
-    const newBudgets = budgets.map(budget => {
+    if (settings.darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [settings.darkMode]);
+
+  useEffect(() => {
+    const currentMonth = new Date().toISOString().substring(0, 7);
+    const newBudgets = budgets.map((budget) => {
       const spent = transactions
-        .filter(t => t.type === "expense" && t.category === budget.category && t.date.startsWith(currentMonth))
+        .filter(
+          (t) =>
+            t.type === "expense" &&
+            t.category === budget.category &&
+            t.date.startsWith(currentMonth)
+        )
         .reduce((sum, t) => sum + t.amount, 0);
       return { ...budget, spent };
     });
-    
     setBudgets(newBudgets);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transactions]); // Only run on tx changes
+  }, [transactions]);
 
   const addTransaction = (tx: Omit<Transaction, "id">) => {
     const newTx = { ...tx, id: `tx-${Math.random().toString(36).substr(2, 9)}` };
-    setTransactions(prev => [newTx, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    setTransactions((prev) =>
+      [newTx, ...prev].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      )
+    );
   };
 
   const deleteTransaction = (id: string) => {
-    setTransactions(prev => prev.filter(t => t.id !== id));
+    setTransactions((prev) => prev.filter((t) => t.id !== id));
   };
 
   const updateBudget = (id: string, limit: number) => {
-    setBudgets(prev => prev.map(b => b.id === id ? { ...b, limit } : b));
+    setBudgets((prev) => prev.map((b) => (b.id === id ? { ...b, limit } : b)));
   };
 
-  const updateSettings = (newSettings: Partial<{ currency: string; name: string }>) => {
-    setSettings(prev => ({ ...prev, ...newSettings }));
+  const updateSettings = (
+    newSettings: Partial<{ currency: string; name: string; darkMode: boolean }>
+  ) => {
+    setSettings((prev) => ({ ...prev, ...newSettings }));
   };
 
   return (
-    <DataContext.Provider value={{ transactions, budgets, addTransaction, deleteTransaction, updateBudget, settings, updateSettings }}>
+    <DataContext.Provider
+      value={{
+        transactions,
+        budgets,
+        addTransaction,
+        deleteTransaction,
+        updateBudget,
+        settings,
+        updateSettings,
+      }}
+    >
       {children}
     </DataContext.Provider>
   );
