@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import {
@@ -32,8 +32,6 @@ const PAGE_TITLES: Record<string, string> = {
   "/settings": "Settings",
 };
 
-const SWIPE_THRESHOLD = 40; // px
-
 interface LayoutProps {
   children: React.ReactNode;
   onLogout?: () => void;
@@ -42,9 +40,7 @@ interface LayoutProps {
 export function Layout({ children, onLogout }: LayoutProps) {
   const [location] = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [navVisible, setNavVisible] = useState(true);
   const profileRef = useRef<HTMLDivElement>(null);
-  const touchStartY = useRef<number | null>(null);
   const { settings, updateSettings } = useData();
 
   const pageTitle =
@@ -52,7 +48,6 @@ export function Layout({ children, onLogout }: LayoutProps) {
     location.split("/")[1]?.replace(/-/g, " ") ??
     "Page";
 
-  // Close profile dropdown on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
@@ -63,40 +58,11 @@ export function Layout({ children, onLogout }: LayoutProps) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // ── Swipe handlers ──
-  const onTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-  }, []);
-
-  const onTouchEnd = useCallback(
-    (e: React.TouchEvent) => {
-      if (touchStartY.current === null) return;
-      const delta = touchStartY.current - e.changedTouches[0].clientY;
-      if (delta > SWIPE_THRESHOLD) setNavVisible(true);   // swipe UP → show
-      if (delta < -SWIPE_THRESHOLD) setNavVisible(false); // swipe DOWN → hide
-      touchStartY.current = null;
-    },
-    []
-  );
-
-  // Also allow swiping anywhere on the main content to reveal nav (swipe up)
-  const onContentTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-  }, []);
-
-  const onContentTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (touchStartY.current === null) return;
-    const delta = touchStartY.current - e.changedTouches[0].clientY;
-    if (delta > SWIPE_THRESHOLD) setNavVisible(true);
-    if (delta < -SWIPE_THRESHOLD) setNavVisible(false);
-    touchStartY.current = null;
-  }, []);
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
+
       {/* ── Top Header ── */}
       <header className="sticky top-0 z-40 h-16 flex items-center justify-between px-4 sm:px-8 bg-background/80 backdrop-blur-md border-b border-border/40">
-        {/* Logo */}
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/30">
             <Wallet className="w-5 h-5 text-white" />
@@ -106,12 +72,10 @@ export function Layout({ children, onLogout }: LayoutProps) {
           </span>
         </div>
 
-        {/* Page title — centered */}
         <h1 className="absolute left-1/2 -translate-x-1/2 text-base font-semibold text-foreground hidden md:block pointer-events-none">
           {pageTitle}
         </h1>
 
-        {/* Right controls */}
         <div className="flex items-center gap-2">
           <span className="hidden sm:inline-flex text-xs font-semibold px-2.5 py-1 bg-secondary rounded-full text-secondary-foreground border border-border">
             {settings.currency}
@@ -125,7 +89,6 @@ export function Layout({ children, onLogout }: LayoutProps) {
             {settings.darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
 
-          {/* Profile dropdown */}
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => setProfileOpen((v) => !v)}
@@ -150,17 +113,12 @@ export function Layout({ children, onLogout }: LayoutProps) {
             {profileOpen && (
               <div className="absolute right-0 top-full mt-2 w-48 bg-card border border-border rounded-2xl shadow-lg shadow-black/10 overflow-hidden z-50">
                 <div className="px-4 py-3 border-b border-border/60">
-                  <p className="text-sm font-semibold text-foreground truncate">
-                    {settings.name}
-                  </p>
+                  <p className="text-sm font-semibold text-foreground truncate">{settings.name}</p>
                   <p className="text-xs text-muted-foreground">Pro Member</p>
                 </div>
                 {onLogout && (
                   <button
-                    onClick={() => {
-                      setProfileOpen(false);
-                      onLogout();
-                    }}
+                    onClick={() => { setProfileOpen(false); onLogout(); }}
                     className="flex w-full items-center gap-2.5 px-4 py-3 text-sm text-destructive hover:bg-destructive/10 transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
@@ -174,60 +132,13 @@ export function Layout({ children, onLogout }: LayoutProps) {
       </header>
 
       {/* ── Main Content ── */}
-      <main
-        className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden pb-36"
-        onTouchStart={onContentTouchStart}
-        onTouchEnd={onContentTouchEnd}
-      >
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
         {children}
       </main>
 
-      {/* ── Bottom Nav + Drag Handle ── */}
-      <div
-        className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-center"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-      >
-        {/* Drag handle pill — always visible at the very bottom edge */}
-        <button
-          onClick={() => setNavVisible((v) => !v)}
-          aria-label={navVisible ? "Hide navigation" : "Show navigation"}
-          className={cn(
-            "flex items-center justify-center focus:outline-none transition-all duration-300",
-            navVisible ? "py-1.5 opacity-40 hover:opacity-80" : "py-2 opacity-100"
-          )}
-        >
-          <div
-            className={cn(
-              "rounded-full transition-all duration-300",
-              navVisible
-                ? "w-10 h-1 bg-foreground/30"
-                : "w-28 h-7 flex items-center justify-center gap-1.5 bg-card border border-border shadow-lg"
-            )}
-          >
-            {!navVisible && (
-              <>
-                <div className="w-1 h-1 rounded-full bg-muted-foreground" />
-                <div className="w-1 h-1 rounded-full bg-muted-foreground" />
-                <div className="w-1 h-1 rounded-full bg-muted-foreground" />
-              </>
-            )}
-          </div>
-        </button>
-
-        {/* Nav bar — slides in/out from bottom */}
-        <nav
-          className={cn(
-            "w-full flex items-center justify-around",
-            "bg-card/95 backdrop-blur-xl",
-            "border-t border-border/60",
-            "px-2 py-2",
-            "transition-all duration-300 ease-in-out",
-            navVisible
-              ? "translate-y-0 opacity-100 pointer-events-auto"
-              : "translate-y-full opacity-0 pointer-events-none"
-          )}
-        >
+      {/* ── Island Bottom Nav ── */}
+      <div className="w-full bg-background px-4 pt-3 pb-5">
+        <nav className="flex items-center justify-around bg-card border border-border/60 rounded-2xl px-2 py-2 shadow-lg shadow-black/8 max-w-xl mx-auto">
           {NAV_ITEMS.map((item) => {
             const isActive = location === item.href;
             return (
@@ -235,7 +146,7 @@ export function Layout({ children, onLogout }: LayoutProps) {
                 <div
                   className={cn(
                     "flex flex-col items-center gap-1 cursor-pointer select-none",
-                    "px-4 py-2 rounded-2xl transition-all duration-200",
+                    "px-4 py-2 rounded-xl transition-all duration-200",
                     isActive
                       ? "bg-primary text-primary-foreground shadow-sm shadow-primary/30"
                       : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -261,6 +172,7 @@ export function Layout({ children, onLogout }: LayoutProps) {
           })}
         </nav>
       </div>
+
     </div>
   );
 }
