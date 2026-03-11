@@ -132,13 +132,13 @@ export function Layout({ children, onLogout }: LayoutProps) {
       </header>
 
       {/* ── Main Content ── */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden pb-32">
         {children}
       </main>
 
       {/* ── Island Bottom Nav ── */}
-      <div className="w-full bg-background px-4 pt-3 pb-5">
-        <nav className="flex items-center justify-around bg-card border border-border/60 rounded-2xl px-2 py-2 shadow-lg shadow-black/8 max-w-xl mx-auto">
+      <div className="fixed bottom-5 left-0 right-0 z-50 px-4 pointer-events-none">
+        <nav className="flex items-center justify-around bg-card border border-border/60 rounded-2xl px-2 py-2 shadow-xl shadow-black/10 max-w-xl mx-auto pointer-events-auto">
           {NAV_ITEMS.map((item) => {
             const isActive = location === item.href;
             return (
