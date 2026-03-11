@@ -1,15 +1,18 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Budget Tracker API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: transactions
+    description: Transaction operations
+  - name: budgets
+    description: Budget operations
 paths:
   /healthz:
     get:
@@ -24,6 +27,131 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /transactions:
+    get:
+      operationId: listTransactions
+      tags: [transactions]
+      summary: List all transactions
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [income, expense, all]
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transaction"
+    post:
+      operationId: createTransaction
+      tags: [transactions]
+      summary: Create a transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTransaction"
+      responses:
+        "201":
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+  /transactions/{id}:
+    put:
+      operationId: updateTransaction
+      tags: [transactions]
+      summary: Update a transaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTransaction"
+      responses:
+        "200":
+          description: Transaction updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+    delete:
+      operationId: deleteTransaction
+      tags: [transactions]
+      summary: Delete a transaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+  /budgets:
+    get:
+      operationId: listBudgets
+      tags: [budgets]
+      summary: List budgets
+      responses:
+        "200":
+          description: List of budgets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Budget"
+    post:
+      operationId: createBudget
+      tags: [budgets]
+      summary: Create or update a budget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBudget"
+      responses:
+        "201":
+          description: Budget created/updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Budget"
+  /summary:
+    get:
+      operationId: getSummary
+      tags: [transactions]
+      summary: Get financial summary
+      responses:
+        "200":
+          description: Financial summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialSummary"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +161,132 @@ components:
           type: string
       required:
         - status
-
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [income, expense]
+        amount:
+          type: number
+        category:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+        paymentMethod:
+          type: string
+        notes:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - type
+        - amount
+        - category
+        - description
+        - date
+        - paymentMethod
+    CreateTransaction:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [income, expense]
+        amount:
+          type: number
+        category:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+        paymentMethod:
+          type: string
+        notes:
+          type: string
+      required:
+        - type
+        - amount
+        - category
+        - description
+        - date
+        - paymentMethod
+    Budget:
+      type: object
+      properties:
+        id:
+          type: integer
+        category:
+          type: string
+        limit:
+          type: number
+        spent:
+          type: number
+        month:
+          type: string
+      required:
+        - id
+        - category
+        - limit
+        - spent
+        - month
+    CreateBudget:
+      type: object
+      properties:
+        category:
+          type: string
+        limit:
+          type: number
+        month:
+          type: string
+      required:
+        - category
+        - limit
+        - month
+    FinancialSummary:
+      type: object
+      properties:
+        totalBalance:
+          type: number
+        totalIncome:
+          type: number
+        totalExpenses:
+          type: number
+        categoryBreakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              amount:
+                type: number
+            required:
+              - category
+              - amount
+        monthlyTrend:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              income:
+                type: number
+              expenses:
+                type: number
+            required:
+              - month
+              - income
+              - expenses
+      required:
+        - totalBalance
+        - totalIncome
+        - totalExpenses
+        - categoryBreakdown
+        - monthlyTrend
