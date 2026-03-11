@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useData } from "@/lib/data-context";
 import { Card, Button, Input, Select, PageTransition } from "@/components/ui-elements";
-import { Download, User, Moon, Globe, Bell, LogOut } from "lucide-react";
+import { Download, User, Moon, Globe, Bell, LogOut, Target } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -25,9 +25,11 @@ export default function Settings({ onLogout }: SettingsProps) {
 
   const [name, setName] = useState(settings.name);
   const [currency, setCurrency] = useState(settings.currency);
+  const [monthlyBudget, setMonthlyBudget] = useState(settings.monthlyBudget.toString());
 
   const handleSave = () => {
-    updateSettings({ name, currency });
+    const budget = parseFloat(monthlyBudget);
+    updateSettings({ name, currency, monthlyBudget: !isNaN(budget) && budget > 0 ? budget : settings.monthlyBudget });
     toast({
       title: "Settings Saved",
       description: "Your preferences have been updated successfully.",
@@ -87,6 +89,25 @@ export default function Settings({ onLogout }: SettingsProps) {
               className="bg-secondary/50"
             />
           </div>
+        </Card>
+      </section>
+
+      {/* Monthly Budget Section */}
+      <section>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Target className="w-5 h-5 text-primary" /> Monthly Budget
+        </h2>
+        <Card>
+          <p className="text-sm text-muted-foreground mb-4">
+            Set your overall monthly spending limit. This is tracked on the Budget page.
+          </p>
+          <Input
+            label="Monthly Budget Limit"
+            type="number"
+            value={monthlyBudget}
+            onChange={(e) => setMonthlyBudget(e.target.value)}
+            placeholder="e.g. 2500"
+          />
         </Card>
       </section>
 

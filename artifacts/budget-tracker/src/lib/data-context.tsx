@@ -20,14 +20,21 @@ export interface Budget {
   spent: number;
 }
 
+export interface Settings {
+  currency: string;
+  name: string;
+  darkMode: boolean;
+  monthlyBudget: number;
+}
+
 interface DataContextType {
   transactions: Transaction[];
   budgets: Budget[];
   addTransaction: (tx: Omit<Transaction, "id">) => void;
   deleteTransaction: (id: string) => void;
   updateBudget: (id: string, limit: number) => void;
-  settings: { currency: string; name: string; darkMode: boolean };
-  updateSettings: (settings: Partial<{ currency: string; name: string; darkMode: boolean }>) => void;
+  settings: Settings;
+  updateSettings: (settings: Partial<Settings>) => void;
 }
 
 const generateMockData = () => {
@@ -75,10 +82,11 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export function DataProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [budgets, setBudgets] = useState<Budget[]>(initialBudgets);
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<Settings>({
     currency: "USD",
     name: "Alex Carter",
     darkMode: false,
+    monthlyBudget: 2500,
   });
 
   useEffect(() => {
@@ -123,9 +131,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setBudgets((prev) => prev.map((b) => (b.id === id ? { ...b, limit } : b)));
   };
 
-  const updateSettings = (
-    newSettings: Partial<{ currency: string; name: string; darkMode: boolean }>
-  ) => {
+  const updateSettings = (newSettings: Partial<Settings>) => {
     setSettings((prev) => ({ ...prev, ...newSettings }));
   };
 
