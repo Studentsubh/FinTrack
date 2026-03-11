@@ -182,27 +182,27 @@ export function Layout({ children, onLogout }: LayoutProps) {
         {children}
       </main>
 
-      {/* ── Island Bottom Nav + Drag Handle ── */}
+      {/* ── Bottom Nav + Drag Handle ── */}
       <div
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 z-50 w-full max-w-[540px] px-4 flex flex-col items-center"
+        className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-center"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        {/* Drag handle pill — always visible, acts as the toggle anchor */}
+        {/* Drag handle pill — always visible at the very bottom edge */}
         <button
           onClick={() => setNavVisible((v) => !v)}
           aria-label={navVisible ? "Hide navigation" : "Show navigation"}
           className={cn(
-            "flex items-center justify-center transition-all duration-300 focus:outline-none",
-            navVisible
-              ? "mb-2 opacity-50 hover:opacity-100"
-              : "mb-3 opacity-100"
+            "flex items-center justify-center focus:outline-none transition-all duration-300",
+            navVisible ? "py-1.5 opacity-40 hover:opacity-80" : "py-2 opacity-100"
           )}
         >
           <div
             className={cn(
-              "rounded-full bg-foreground/20 backdrop-blur-sm transition-all duration-300",
-              navVisible ? "w-10 h-1.5" : "w-24 h-6 flex items-center justify-center gap-1.5 shadow-lg bg-card border border-border/60"
+              "rounded-full transition-all duration-300",
+              navVisible
+                ? "w-10 h-1 bg-foreground/30"
+                : "w-28 h-7 flex items-center justify-center gap-1.5 bg-card border border-border shadow-lg"
             )}
           >
             {!navVisible && (
@@ -215,18 +215,17 @@ export function Layout({ children, onLogout }: LayoutProps) {
           </div>
         </button>
 
-        {/* Nav bar — slides in/out */}
+        {/* Nav bar — slides in/out from bottom */}
         <nav
           className={cn(
             "w-full flex items-center justify-around",
-            "bg-card/90 backdrop-blur-xl",
-            "border border-border/60",
-            "rounded-[28px] px-3 py-3",
-            "shadow-xl shadow-black/10",
+            "bg-card/95 backdrop-blur-xl",
+            "border-t border-border/60",
+            "px-2 py-2",
             "transition-all duration-300 ease-in-out",
             navVisible
-              ? "translate-y-0 opacity-100 mb-5 pointer-events-auto"
-              : "translate-y-full opacity-0 mb-0 pointer-events-none"
+              ? "translate-y-0 opacity-100 pointer-events-auto"
+              : "translate-y-full opacity-0 pointer-events-none"
           )}
         >
           {NAV_ITEMS.map((item) => {
@@ -236,7 +235,7 @@ export function Layout({ children, onLogout }: LayoutProps) {
                 <div
                   className={cn(
                     "flex flex-col items-center gap-1 cursor-pointer select-none",
-                    "px-3 py-2 rounded-2xl transition-all duration-200",
+                    "px-4 py-2 rounded-2xl transition-all duration-200",
                     isActive
                       ? "bg-primary text-primary-foreground shadow-sm shadow-primary/30"
                       : "text-muted-foreground hover:bg-secondary hover:text-foreground"
