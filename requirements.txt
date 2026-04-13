@@ -1,0 +1,58 @@
+Finance Dashboard Setup Requirements
+
+This project uses:
+- Node.js 22+
+- pnpm 10+
+- PostgreSQL
+
+Environment
+- Create a `.env` file in the project root
+- Add:
+
+DATABASE_URL=postgres://postgres:postgres1234@localhost:5432/DBMS_mini
+
+Install dependencies
+- Run from project root:
+
+pnpm install
+
+Database setup
+- Make sure PostgreSQL is running
+- Create the database referenced by `DATABASE_URL`
+- Create tables using `schema.sql`
+- Or push schema with:
+
+pnpm db:push
+
+Run the app
+- Start frontend + API together:
+
+pnpm dev
+
+- Start only API:
+
+pnpm dev:api
+pnpm --filter @workspace/budget-tracker run dev
+
+
+- Start only frontend:
+
+pnpm dev:web
+>> $env:DATABASE_URL="postgres://postgres:postgres1234@localhost:5432/DBMS_mini"
+>> pnpm --filter @workspace/api-server run dev
+
+
+Useful URLs
+- Frontend: http://localhost:3000/
+- API health: http://localhost:3001/api/healthz
+
+If dependencies break after reinstall
+- Run:
+
+pnpm install
+
+- If native frontend packages are missing on Windows, install:
+
+pnpm --filter @workspace/budget-tracker add -D lightningcss-win32-x64-msvc@1.32.0
+pnpm --filter @workspace/budget-tracker add -D @tailwindcss/oxide-win32-x64-msvc@4.2.2
+

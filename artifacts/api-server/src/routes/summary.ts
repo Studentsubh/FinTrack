@@ -1,18 +1,25 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { transactionsTable } from "@workspace/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { getAuthenticatedUser } from "../lib/auth";
 
 const router: IRouter = Router();
 
-router.get("/summary", async (_req, res) => {
+router.get("/summary", async (req, res) => {
   try {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
     const totals = await db
       .select({
         type: transactionsTable.type,
         total: sql<string>`sum(${transactionsTable.amount})`,
       })
       .from(transactionsTable)
+      .where(eq(transactionsTable.userId, user.id))
       .groupBy(transactionsTable.type);
 
     let totalIncome = 0;
@@ -28,7 +35,7 @@ router.get("/summary", async (_req, res) => {
         amount: sql<string>`sum(${transactionsTable.amount})`,
       })
       .from(transactionsTable)
-      .where(eq(transactionsTable.type, "expense"))
+      .where(and(eq(transactionsTable.userId, user.id), eq(transactionsTable.type, "expense")))
       .groupBy(transactionsTable.category)
       .orderBy(sql`sum(${transactionsTable.amount}) desc`);
 
@@ -40,6 +47,7 @@ router.get("/summary", async (_req, res) => {
         total: sql<string>`sum(${transactionsTable.amount})`,
       })
       .from(transactionsTable)
+      .where(eq(transactionsTable.userId, user.id))
       .groupBy(sql`to_char(${transactionsTable.createdAt}, 'Mon')`, sql`to_char(${transactionsTable.createdAt}, 'YYYY-MM')`, transactionsTable.type)
       .orderBy(sql`to_char(${transactionsTable.createdAt}, 'YYYY-MM')`);
 

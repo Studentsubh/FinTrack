@@ -3,7 +3,7 @@ import { Wallet, Eye, EyeOff, ArrowRight, TrendingUp, Shield, Zap } from "lucide
 import { cn } from "@/lib/utils";
 
 interface LoginProps {
-  onLogin: () => void;
+  onLogin: (user: { id: number; name: string; email: string }) => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
@@ -33,17 +33,78 @@ export default function Login({ onLogin }: LoginProps) {
     }
 
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    setIsLoading(false);
-    onLogin();
+    try {
+      const endpoint = isSignUp ? "/api/auth/signup" : "/api/auth/login";
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Authentication failed.");
+      }
+
+      onLogin(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Authentication failed.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDemo = () => {
+  const handleDemo = async () => {
     setIsLoading(true);
-    setTimeout(() => {
+    setError("");
+    const demoUser = {
+      name: "Demo User",
+      email: "demo@fintrack.local",
+      password: "demo1234",
+    };
+
+    try {
+      const signupResponse = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(demoUser),
+      });
+
+      if (signupResponse.ok) {
+        onLogin(await signupResponse.json());
+        return;
+      }
+
+      const loginResponse = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: demoUser.email,
+          password: demoUser.password,
+        }),
+      });
+
+      const data = await loginResponse.json();
+      if (!loginResponse.ok) {
+        throw new Error(data.error ?? "Demo login failed.");
+      }
+
+      onLogin(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Demo login failed.");
+    } finally {
       setIsLoading(false);
-      onLogin();
-    }, 600);
+    }
   };
 
   const features = [

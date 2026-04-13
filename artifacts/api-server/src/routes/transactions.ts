@@ -9,13 +9,20 @@ import {
   DeleteTransactionParams,
   ListTransactionsQueryParams,
 } from "@workspace/api-zod";
+import { getAuthenticatedUser } from "../lib/auth";
+import { getCategoryOrThrow } from "../lib/categories";
 
 const router: IRouter = Router();
 
 router.get("/transactions", async (req, res) => {
   try {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
     const query = ListTransactionsQueryParams.parse(req.query);
-    const conditions: SQL[] = [];
+    const conditions: SQL[] = [eq(transactionsTable.userId, user.id)];
 
     if (query.type && query.type !== "all") {
       conditions.push(eq(transactionsTable.type, query.type));
@@ -52,10 +59,21 @@ router.get("/transactions", async (req, res) => {
 
 router.post("/transactions", async (req, res) => {
   try {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
     const body = CreateTransactionBody.parse(req.body);
+    const category = await getCategoryOrThrow({
+      name: body.category,
+      type: body.type,
+    });
     const [tx] = await db
       .insert(transactionsTable)
       .values({
+        userId: user.id,
+        categoryId: category.id,
         type: body.type,
         amount: String(body.amount),
         category: body.category,
@@ -84,11 +102,21 @@ router.post("/transactions", async (req, res) => {
 
 router.put("/transactions/:id", async (req, res) => {
   try {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
     const { id } = UpdateTransactionParams.parse({ id: parseInt(req.params.id) });
     const body = UpdateTransactionBody.parse(req.body);
+    const category = await getCategoryOrThrow({
+      name: body.category,
+      type: body.type,
+    });
     const [tx] = await db
       .update(transactionsTable)
       .set({
+        categoryId: category.id,
         type: body.type,
         amount: String(body.amount),
         category: body.category,
@@ -97,7 +125,7 @@ router.put("/transactions/:id", async (req, res) => {
         paymentMethod: body.paymentMethod,
         notes: body.notes ?? "",
       })
-      .where(eq(transactionsTable.id, id))
+      .where(and(eq(transactionsTable.id, id), eq(transactionsTable.userId, user.id)))
       .returning();
 
     if (!tx) return res.status(404).json({ error: "Not found" });
@@ -119,8 +147,15 @@ router.put("/transactions/:id", async (req, res) => {
 
 router.delete("/transactions/:id", async (req, res) => {
   try {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
     const { id } = DeleteTransactionParams.parse({ id: parseInt(req.params.id) });
-    await db.delete(transactionsTable).where(eq(transactionsTable.id, id));
+    await db
+      .delete(transactionsTable)
+      .where(and(eq(transactionsTable.id, id), eq(transactionsTable.userId, user.id)));
     res.status(204).send();
   } catch (err) {
     res.status(400).json({ error: String(err) });

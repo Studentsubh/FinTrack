@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -17,6 +17,7 @@ import Reports from "@/pages/reports";
 import Settings from "@/pages/settings";
 
 const queryClient = new QueryClient();
+type AuthUser = { id: number; name: string; email: string };
 
 function Router({ onLogout }: { onLogout: () => void }) {
   return (
@@ -27,7 +28,9 @@ function Router({ onLogout }: { onLogout: () => void }) {
         <Route path="/transactions" component={TransactionsHistory} />
         <Route path="/budget" component={BudgetOverview} />
         <Route path="/reports" component={Reports} />
-        <Route path="/settings" component={Settings} />
+        <Route path="/settings">
+          <Settings onLogout={onLogout} />
+        </Route>
         <Route component={NotFound} />
       </Switch>
     </Layout>
@@ -35,16 +38,45 @@ function Router({ onLogout }: { onLogout: () => void }) {
 }
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authState, setAuthState] = useState<"loading" | "authenticated" | "guest">("loading");
+  const [user, setUser] = useState<AuthUser | null>(null);
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setUser(null);
+    setAuthState("guest");
   };
 
-  if (!isLoggedIn) {
+  useEffect(() => {
+    void fetch("/api/auth/me")
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("No active session");
+        }
+        return response.json() as Promise<AuthUser>;
+      })
+      .then((authUser) => {
+        setUser(authUser);
+        setAuthState("authenticated");
+      })
+      .catch(() => {
+        setAuthState("guest");
+      });
+  }, []);
+
+  if (authState === "loading") {
+    return null;
+  }
+
+  if (authState !== "authenticated" || !user) {
     return (
       <>
-        <Login onLogin={() => setIsLoggedIn(true)} />
+        <Login
+          onLogin={(authUser) => {
+            setUser(authUser);
+            setAuthState("authenticated");
+          }}
+        />
         <Toaster />
       </>
     );
@@ -52,7 +84,7 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <DataProvider>
+      <DataProvider userName={user.name}>
         <TooltipProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router onLogout={handleLogout} />

@@ -113,7 +113,7 @@ export default function TransactionsHistory() {
                           className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                           onClick={() => {
                             if(confirm("Are you sure you want to delete this transaction?")) {
-                              deleteTransaction(tx.id);
+                              void deleteTransaction(tx.id);
                             }
                           }}
                         >

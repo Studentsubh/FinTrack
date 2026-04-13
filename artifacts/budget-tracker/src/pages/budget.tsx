@@ -10,7 +10,7 @@ export default function BudgetOverview() {
   const { budgets, updateBudget, settings, updateSettings } = useData();
   const { toast } = useToast();
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
   const [editingMonthly, setEditingMonthly] = useState(false);
   const [monthlyValue, setMonthlyValue] = useState(settings.monthlyBudget.toString());
@@ -40,10 +40,10 @@ export default function BudgetOverview() {
     setEditingMonthly(false);
   };
 
-  const handleSaveBudget = (id: string) => {
+  const handleSaveBudget = async (id: number) => {
     const num = parseFloat(editValue);
     if (!isNaN(num) && num > 0) {
-      updateBudget(id, num);
+      await updateBudget(id, num);
       toast({ title: "Category budget updated" });
     }
     setEditingId(null);

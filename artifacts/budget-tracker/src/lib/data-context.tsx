@@ -1,9 +1,15 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 
 export type TransactionType = "income" | "expense";
 
 export interface Transaction {
-  id: string;
+  id: number;
   type: TransactionType;
   amount: number;
   category: string;
@@ -14,10 +20,11 @@ export interface Transaction {
 }
 
 export interface Budget {
-  id: string;
+  id: number;
   category: string;
   limit: number;
   spent: number;
+  month: string;
 }
 
 export interface Settings {
@@ -30,64 +37,69 @@ export interface Settings {
 interface DataContextType {
   transactions: Transaction[];
   budgets: Budget[];
-  addTransaction: (tx: Omit<Transaction, "id">) => void;
-  deleteTransaction: (id: string) => void;
-  updateBudget: (id: string, limit: number) => void;
+  addTransaction: (tx: Omit<Transaction, "id">) => Promise<void>;
+  deleteTransaction: (id: number) => Promise<void>;
+  updateBudget: (id: number, limit: number) => Promise<void>;
   settings: Settings;
   updateSettings: (settings: Partial<Settings>) => void;
+  isLoading: boolean;
 }
 
-const generateMockData = () => {
-  const categories = ["Food", "Transport", "Shopping", "Bills", "Entertainment"];
-  const txs: Transaction[] = [];
-  const today = new Date();
+interface DataProviderProps {
+  children: ReactNode;
+  userName?: string;
+}
 
-  for (let i = 0; i < 25; i++) {
-    const isExpense = Math.random() > 0.2;
-    const date = new Date(today);
-    date.setDate(date.getDate() - Math.floor(Math.random() * 60));
-
-    txs.push({
-      id: `tx-${Math.random().toString(36).substr(2, 9)}`,
-      type: isExpense ? "expense" : "income",
-      amount: isExpense
-        ? Math.floor(Math.random() * 150) + 10
-        : Math.floor(Math.random() * 2000) + 500,
-      category: isExpense
-        ? categories[Math.floor(Math.random() * categories.length)]
-        : "Salary",
-      description: isExpense
-        ? `Purchase at ${["Walmart", "Uber", "Amazon", "Netflix", "Starbucks"][Math.floor(Math.random() * 5)]}`
-        : "Direct Deposit",
-      date: date.toISOString().split("T")[0],
-      paymentMethod: ["Card", "Cash", "Bank Transfer"][Math.floor(Math.random() * 3)],
-    });
-  }
-
-  return txs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+const DEFAULT_SETTINGS: Settings = {
+  currency: "USD",
+  name: "Alex Carter",
+  darkMode: false,
+  monthlyBudget: 2500,
 };
 
-const initialTransactions = generateMockData();
-
-const initialBudgets: Budget[] = [
-  { id: "b1", category: "Food", limit: 600, spent: 0 },
-  { id: "b2", category: "Transport", limit: 200, spent: 0 },
-  { id: "b3", category: "Shopping", limit: 300, spent: 0 },
-  { id: "b4", category: "Bills", limit: 800, spent: 0 },
-  { id: "b5", category: "Entertainment", limit: 150, spent: 0 },
-];
+const SETTINGS_STORAGE_KEY = "finance-dashboard-settings";
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-export function DataProvider({ children }: { children: ReactNode }) {
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
-  const [budgets, setBudgets] = useState<Budget[]>(initialBudgets);
-  const [settings, setSettings] = useState<Settings>({
-    currency: "USD",
-    name: "Alex Carter",
-    darkMode: false,
-    monthlyBudget: 2500,
-  });
+async function fetchJson<T>(input: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(input, init);
+  if (!response.ok) {
+    try {
+      const errorBody = (await response.json()) as { error?: string };
+      throw new Error(errorBody.error ?? `Request failed with status ${response.status}`);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+  }
+
+  return response.json() as Promise<T>;
+}
+
+function loadInitialSettings(): Settings {
+  if (typeof window === "undefined") {
+    return DEFAULT_SETTINGS;
+  }
+
+  const stored = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+  if (!stored) {
+    return DEFAULT_SETTINGS;
+  }
+
+  try {
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+export function DataProvider({ children, userName }: DataProviderProps) {
+  const [settings, setSettings] = useState<Settings>(() => loadInitialSettings());
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (settings.darkMode) {
@@ -98,37 +110,85 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [settings.darkMode]);
 
   useEffect(() => {
-    const currentMonth = new Date().toISOString().substring(0, 7);
-    const newBudgets = budgets.map((budget) => {
-      const spent = transactions
-        .filter(
-          (t) =>
-            t.type === "expense" &&
-            t.category === budget.category &&
-            t.date.startsWith(currentMonth)
-        )
-        .reduce((sum, t) => sum + t.amount, 0);
-      return { ...budget, spent };
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    }
+  }, [settings]);
+
+  useEffect(() => {
+    if (userName && userName !== settings.name) {
+      setSettings((prev) => ({ ...prev, name: userName }));
+    }
+  }, [settings.name, userName]);
+
+  const loadFinanceData = async () => {
+    setIsLoading(true);
+    try {
+      const [transactionsData, budgetsData] = await Promise.all([
+        fetchJson<Transaction[]>("/api/transactions"),
+        fetchJson<Budget[]>("/api/budgets"),
+      ]);
+      setTransactions(transactionsData.map((tx) => ({ ...tx, notes: tx.notes ?? "" })));
+      setBudgets(budgetsData);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadFinanceData();
+  }, []);
+
+  const addTransaction = async (tx: Omit<Transaction, "id">) => {
+    await fetchJson<Transaction>("/api/transactions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: tx.type,
+        amount: tx.amount,
+        category: tx.category,
+        description: tx.description,
+        date: tx.date,
+        paymentMethod: tx.paymentMethod,
+        notes: tx.notes ?? "",
+      }),
     });
-    setBudgets(newBudgets);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transactions]);
 
-  const addTransaction = (tx: Omit<Transaction, "id">) => {
-    const newTx = { ...tx, id: `tx-${Math.random().toString(36).substr(2, 9)}` };
-    setTransactions((prev) =>
-      [newTx, ...prev].sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      )
-    );
+    await loadFinanceData();
   };
 
-  const deleteTransaction = (id: string) => {
-    setTransactions((prev) => prev.filter((t) => t.id !== id));
+  const deleteTransaction = async (id: number) => {
+    const response = await fetch(`/api/transactions/${id}`, {
+      method: "DELETE",
+    });
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    await loadFinanceData();
   };
 
-  const updateBudget = (id: string, limit: number) => {
-    setBudgets((prev) => prev.map((b) => (b.id === id ? { ...b, limit } : b)));
+  const updateBudget = async (id: number, limit: number) => {
+    const budget = budgets.find((item) => item.id === id);
+    if (!budget) {
+      return;
+    }
+
+    await fetchJson<Budget>("/api/budgets", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        category: budget.category,
+        limit,
+        month: budget.month,
+      }),
+    });
+
+    await loadFinanceData();
   };
 
   const updateSettings = (newSettings: Partial<Settings>) => {
@@ -145,6 +205,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         updateBudget,
         settings,
         updateSettings,
+        isLoading,
       }}
     >
       {children}

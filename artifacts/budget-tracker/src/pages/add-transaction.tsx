@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useData, TransactionType } from "@/lib/data-context";
 import { Card, Button, Input, Select, PageTransition } from "@/components/ui-elements";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 const EXPENSE_CATEGORIES = ["Food", "Transport", "Shopping", "Bills", "Entertainment", "Health", "Other"];
 const INCOME_CATEGORIES = ["Salary", "Freelance", "Investment", "Gift", "Other"];
@@ -11,6 +12,7 @@ const PAYMENT_METHODS = ["Card", "Cash", "Bank Transfer", "UPI"];
 export default function AddTransaction() {
   const [, setLocation] = useLocation();
   const { addTransaction } = useData();
+  const { toast } = useToast();
   
   const searchParams = new URLSearchParams(window.location.search);
   const initialType = (searchParams.get("type") as TransactionType) || "expense";
@@ -25,21 +27,33 @@ export default function AddTransaction() {
 
   const categories = type === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !description || !category) return;
 
-    addTransaction({
-      type,
-      amount: parseFloat(amount),
-      description,
-      category,
-      date,
-      paymentMethod,
-      notes
-    });
+    try {
+      await addTransaction({
+        type,
+        amount: parseFloat(amount),
+        description,
+        category,
+        date,
+        paymentMethod,
+        notes
+      });
 
-    setLocation("/transactions");
+      toast({
+        title: "Transaction saved",
+        description: "Your transaction was added successfully.",
+      });
+      setLocation("/transactions");
+    } catch (error) {
+      toast({
+        title: "Could not save transaction",
+        description: error instanceof Error ? error.message : "Something went wrong.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
