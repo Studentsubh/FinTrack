@@ -2,8 +2,9 @@
   "name": "workspace",
   "version": "0.0.0",
   "license": "MIT",
+  "packageManager": "pnpm@10.15.1",
   "scripts": {
-    "preinstall": "powershell -Command \"if (Test-Path package-lock.json) { Remove-Item package-lock.json }; if (Test-Path yarn.lock) { Remove-Item yarn.lock }\"",
+    "preinstall": "node -e \"const fs=require('fs'); for (const file of ['package-lock.json','yarn.lock']) { if (fs.existsSync(file)) fs.rmSync(file, { force: true }); }\"",
     "dev": "pnpm --parallel --filter @workspace/api-server --filter @workspace/budget-tracker run dev",
     "dev:api": "pnpm --filter @workspace/api-server run dev",
     "dev:web": "pnpm --filter @workspace/budget-tracker run dev",
