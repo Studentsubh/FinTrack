@@ -23,10 +23,12 @@ function verifyPassword(password: string, passwordHash: string) {
 }
 
 function setAuthCookie(res: Response, userId: number) {
+  const isProduction = process.env["NODE_ENV"] === "production";
+
   res.cookie(AUTH_COOKIE_NAME, String(userId), {
     httpOnly: true,
-    sameSite: "lax",
-    secure: false,
+    sameSite: isProduction ? "none" : "lax",
+    secure: isProduction,
     maxAge: 1000 * 60 * 60 * 24 * 30,
   });
 }

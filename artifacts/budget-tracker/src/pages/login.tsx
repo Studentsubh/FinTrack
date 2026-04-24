@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Wallet, Eye, EyeOff, ArrowRight, TrendingUp, Shield, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api";
 
 interface LoginProps {
   onLogin: (user: { id: number; name: string; email: string }) => void;
@@ -35,7 +36,7 @@ export default function Login({ onLogin }: LoginProps) {
     setIsLoading(true);
     try {
       const endpoint = isSignUp ? "/api/auth/signup" : "/api/auth/login";
-      const response = await fetch(endpoint, {
+      const response = await apiFetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -70,7 +71,7 @@ export default function Login({ onLogin }: LoginProps) {
     };
 
     try {
-      const signupResponse = await fetch("/api/auth/signup", {
+      const signupResponse = await apiFetch("/api/auth/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -83,7 +84,7 @@ export default function Login({ onLogin }: LoginProps) {
         return;
       }
 
-      const loginResponse = await fetch("/api/auth/login", {
+      const loginResponse = await apiFetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

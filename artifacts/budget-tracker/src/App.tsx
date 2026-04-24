@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
+import { apiFetch } from "@/lib/api";
 
 import { DataProvider } from "@/lib/data-context";
 import { Layout } from "@/components/layout";
@@ -42,13 +43,13 @@ function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await apiFetch("/api/auth/logout", { method: "POST" });
     setUser(null);
     setAuthState("guest");
   };
 
   useEffect(() => {
-    void fetch("/api/auth/me")
+    void apiFetch("/api/auth/me")
       .then(async (response) => {
         if (!response.ok) {
           throw new Error("No active session");

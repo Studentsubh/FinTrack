@@ -5,6 +5,7 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
+import { apiFetch } from "@/lib/api";
 
 export type TransactionType = "income" | "expense";
 
@@ -62,7 +63,7 @@ const SETTINGS_STORAGE_KEY = "finance-dashboard-settings";
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 async function fetchJson<T>(input: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(input, init);
+  const response = await apiFetch(input, init);
   if (!response.ok) {
     try {
       const errorBody = (await response.json()) as { error?: string };
@@ -160,7 +161,7 @@ export function DataProvider({ children, userName }: DataProviderProps) {
   };
 
   const deleteTransaction = async (id: number) => {
-    const response = await fetch(`/api/transactions/${id}`, {
+    const response = await apiFetch(`/api/transactions/${id}`, {
       method: "DELETE",
     });
     if (!response.ok) {
