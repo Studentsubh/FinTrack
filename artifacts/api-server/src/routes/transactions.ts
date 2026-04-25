@@ -51,9 +51,9 @@ router.get("/transactions", async (req, res) => {
       notes: t.notes ?? "",
       createdAt: t.createdAt.toISOString(),
     }));
-    res.json(result);
+    return res.json(result);
   } catch (err) {
-    res.status(400).json({ error: String(err) });
+    return res.status(400).json({ error: String(err) });
   }
 });
 
@@ -84,7 +84,7 @@ router.post("/transactions", async (req, res) => {
       })
       .returning();
 
-    res.status(201).json({
+    return res.status(201).json({
       id: tx.id,
       type: tx.type,
       amount: parseFloat(tx.amount),
@@ -96,7 +96,7 @@ router.post("/transactions", async (req, res) => {
       createdAt: tx.createdAt.toISOString(),
     });
   } catch (err) {
-    res.status(400).json({ error: String(err) });
+    return res.status(400).json({ error: String(err) });
   }
 });
 
@@ -129,7 +129,7 @@ router.put("/transactions/:id", async (req, res) => {
       .returning();
 
     if (!tx) return res.status(404).json({ error: "Not found" });
-    res.json({
+    return res.json({
       id: tx.id,
       type: tx.type,
       amount: parseFloat(tx.amount),
@@ -141,7 +141,7 @@ router.put("/transactions/:id", async (req, res) => {
       createdAt: tx.createdAt.toISOString(),
     });
   } catch (err) {
-    res.status(400).json({ error: String(err) });
+    return res.status(400).json({ error: String(err) });
   }
 });
 
@@ -156,9 +156,9 @@ router.delete("/transactions/:id", async (req, res) => {
     await db
       .delete(transactionsTable)
       .where(and(eq(transactionsTable.id, id), eq(transactionsTable.userId, user.id)));
-    res.status(204).send();
+    return res.status(204).send();
   } catch (err) {
-    res.status(400).json({ error: String(err) });
+    return res.status(400).json({ error: String(err) });
   }
 });
 

@@ -47,9 +47,9 @@ router.get("/budgets", async (req, res) => {
       month: b.month,
     }));
 
-    res.json(result);
+    return res.json(result);
   } catch (err) {
-    res.status(400).json({ error: String(err) });
+    return res.status(400).json({ error: String(err) });
   }
 });
 
@@ -99,7 +99,7 @@ router.post("/budgets", async (req, res) => {
       budget = created;
     }
 
-    res.status(201).json({
+    return res.status(201).json({
       id: budget.id,
       category: budget.category,
       limit: parseFloat(budget.limit),
@@ -107,7 +107,7 @@ router.post("/budgets", async (req, res) => {
       month: budget.month,
     });
   } catch (err) {
-    res.status(400).json({ error: String(err) });
+    return res.status(400).json({ error: String(err) });
   }
 });
 

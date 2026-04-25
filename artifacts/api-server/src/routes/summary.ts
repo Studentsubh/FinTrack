@@ -61,7 +61,7 @@ router.get("/summary", async (req, res) => {
       if (row.type === "expense") entry.expenses = parseFloat(row.total || "0");
     }
 
-    res.json({
+    return res.json({
       totalBalance: totalIncome - totalExpenses,
       totalIncome,
       totalExpenses,
@@ -72,7 +72,7 @@ router.get("/summary", async (req, res) => {
       monthlyTrend: Array.from(monthMap.values()),
     });
   } catch (err) {
-    res.status(400).json({ error: String(err) });
+    return res.status(400).json({ error: String(err) });
   }
 });
 
