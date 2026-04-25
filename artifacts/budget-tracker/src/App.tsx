@@ -1,21 +1,20 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
 import { apiFetch } from "@/lib/api";
-
 import { DataProvider } from "@/lib/data-context";
 import { Layout } from "@/components/layout";
 import Login from "@/pages/login";
 
-import Dashboard from "@/pages/dashboard";
-import AddTransaction from "@/pages/add-transaction";
-import TransactionsHistory from "@/pages/transactions";
-import BudgetOverview from "@/pages/budget";
-import Reports from "@/pages/reports";
-import Settings from "@/pages/settings";
+const NotFound = lazy(() => import("@/pages/not-found"));
+const Dashboard = lazy(() => import("@/pages/dashboard"));
+const AddTransaction = lazy(() => import("@/pages/add-transaction"));
+const TransactionsHistory = lazy(() => import("@/pages/transactions"));
+const BudgetOverview = lazy(() => import("@/pages/budget"));
+const Reports = lazy(() => import("@/pages/reports"));
+const Settings = lazy(() => import("@/pages/settings"));
 
 const queryClient = new QueryClient();
 type AuthUser = { id: number; name: string; email: string };
@@ -23,19 +22,25 @@ type AuthUser = { id: number; name: string; email: string };
 function Router({ onLogout }: { onLogout: () => void }) {
   return (
     <Layout onLogout={onLogout}>
-      <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/add" component={AddTransaction} />
-        <Route path="/transactions" component={TransactionsHistory} />
-        <Route path="/budget" component={BudgetOverview} />
-        <Route path="/reports" component={Reports} />
-        <Route path="/settings">
-          <Settings onLogout={onLogout} />
-        </Route>
-        <Route component={NotFound} />
-      </Switch>
+      <Suspense fallback={<RouteFallback />}>
+        <Switch>
+          <Route path="/" component={Dashboard} />
+          <Route path="/add" component={AddTransaction} />
+          <Route path="/transactions" component={TransactionsHistory} />
+          <Route path="/budget" component={BudgetOverview} />
+          <Route path="/reports" component={Reports} />
+          <Route path="/settings">
+            <Settings onLogout={onLogout} />
+          </Route>
+          <Route component={NotFound} />
+        </Switch>
+      </Suspense>
     </Layout>
   );
+}
+
+function RouteFallback() {
+  return <div className="min-h-[50vh]" aria-busy="true" />;
 }
 
 function App() {

@@ -1,6 +1,5 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { motion, HTMLMotionProps } from "framer-motion";
 
 // --- CARD ---
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -152,17 +151,17 @@ export function Badge({ children, variant = "default", className }: { children: 
 }
 
 // --- ANIMATED PAGE WRAPPER ---
-export function PageTransition({ children, className, ...props }: HTMLMotionProps<"div">) {
+export function PageTransition({
+  children,
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+    <div
       className={cn("w-full max-w-7xl mx-auto space-y-6", className)}
       {...props}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }

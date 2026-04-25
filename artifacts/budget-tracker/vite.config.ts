@@ -23,6 +23,44 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) {
+            return undefined;
+          }
+
+          if (id.includes("lucide-react")) {
+            return "icons";
+          }
+
+          if (id.includes("wouter")) {
+            return "routing";
+          }
+
+          if (id.includes("recharts")) {
+            return "charts";
+          }
+
+          if (id.includes("@radix-ui")) {
+            return "radix";
+          }
+
+          if (id.includes("@tanstack/react-query")) {
+            return "react-query";
+          }
+
+          if (
+            id.includes("react-day-picker") ||
+            id.includes("date-fns")
+          ) {
+            return "date-ui";
+          }
+
+          return "vendor";
+        },
+      },
+    },
   },
   server: {
     port,
