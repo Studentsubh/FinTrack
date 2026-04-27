@@ -41,11 +41,18 @@ export default function Login({ onLogin }: LoginProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-        }),
+        body: JSON.stringify(
+          isSignUp
+            ? {
+                name,
+                email,
+                password,
+              }
+            : {
+                email,
+                password,
+              },
+        ),
       });
 
       const data = await response.json();
