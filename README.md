@@ -1,4 +1,4 @@
-++# Finance Dashboard
+# Finance Dashboard
 
 A full-stack personal finance dashboard built as a `pnpm` monorepo with:
 
@@ -272,11 +272,17 @@ Create a `.env` file at the repo root:
 
 ```env
 DATABASE_URL=postgres://postgres:postgres1234@localhost:5432/DBMS_mini
+VITE_API_BASE_URL=http://localhost:3001
 ```
 
 Reference example:
 
 - [.env.example](C:/Users/subhadeep/Downloads/Finance-Dashboard/.env.example)
+
+Important:
+
+- keep `.env.example` limited to placeholder values only
+- do not commit real database passwords or live service keys
 
 ## Install Dependencies
 
@@ -341,6 +347,90 @@ pnpm --filter @workspace/budget-tracker run dev
 
 - Frontend: `http://localhost:3000`
 - API health: `http://localhost:3001/api/healthz`
+
+## Deployment
+
+This project is deployed as two separate services:
+
+- Vercel hosts the frontend in [artifacts/budget-tracker](C:/Users/subhadeep/Downloads/Finance-Dashboard/artifacts/budget-tracker)
+- Render hosts the backend in [artifacts/api-server](C:/Users/subhadeep/Downloads/Finance-Dashboard/artifacts/api-server)
+
+Architecture:
+
+```text
+Browser
+  -> Vercel frontend
+  -> Render backend API
+  -> Supabase Postgres
+```
+
+The Render URL is not the website UI. It serves API routes such as `/api/healthz`.
+
+### Vercel frontend
+
+Use these settings in Vercel:
+
+- Root Directory: `artifacts/budget-tracker`
+- Framework Preset: `Vite`
+
+Frontend production env vars:
+
+```env
+VITE_API_BASE_URL=https://your-render-service.onrender.com
+VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
+```
+
+Notes:
+
+- `VITE_API_BASE_URL` should be the Render base URL without a trailing slash
+- redeploy Vercel after changing frontend env vars
+
+### Render backend
+
+Use these settings in Render:
+
+- Build command: `pnpm install --frozen-lockfile && pnpm --filter @workspace/api-server run build`
+- Start command: `node artifacts/api-server/dist/index.cjs`
+
+Backend production env vars:
+
+```env
+DATABASE_URL=your_supabase_pooled_connection_string
+FRONTEND_ORIGIN=https://your-stable-vercel-domain.vercel.app
+NODE_ENV=production
+```
+
+Notes:
+
+- `FRONTEND_ORIGIN` must exactly match the Vercel origin
+- do not include a trailing slash in `FRONTEND_ORIGIN`
+- if `FRONTEND_ORIGIN` changes, redeploy Render
+
+### Auth and CORS gotcha
+
+Authentication is cookie-based and cross-origin in production:
+
+- frontend runs on `vercel.app`
+- backend runs on `onrender.com`
+- requests use `credentials: "include"`
+
+That means the browser will block requests if `FRONTEND_ORIGIN` does not exactly match the active Vercel origin.
+
+Bad:
+
+```text
+https://your-site.vercel.app/
+https://preview-url.vercel.app
+```
+
+Good:
+
+```text
+https://your-site.vercel.app
+```
+
+Use one stable Vercel production domain and keep Render pointed at that exact value.
 
 ## Important Port Note
 
@@ -468,6 +558,33 @@ Check:
 2. `categories` table is seeded
 3. `transactions` has `user_id` and `category_id`
 4. latest migration was run
+
+### Login or signup fails with `Failed to fetch`
+
+Check:
+
+1. `VITE_API_BASE_URL` points to the Render backend
+2. `https://your-render-service.onrender.com/api/healthz` returns `{"status":"ok"}`
+3. `FRONTEND_ORIGIN` exactly matches the Vercel domain
+4. `FRONTEND_ORIGIN` does not have a trailing slash
+5. both services were redeployed after env var changes
+
+If the browser shows an `OPTIONS` request but never sends the real `POST`, it is usually a CORS origin mismatch.
+
+### Sign in returns a validation error about `name`
+
+If you see a Zod error like:
+
+```json
+[
+  {
+    "path": ["name"],
+    "message": "String must contain at least 1 character(s)"
+  }
+]
+```
+
+make sure the frontend is updated to the latest version. Sign-in should send only `email` and `password`, while sign-up sends `name`, `email`, and `password`.
 
 ### Backend fails because `DATABASE_URL` is missing
 
